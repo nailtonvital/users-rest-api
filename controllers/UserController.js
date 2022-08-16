@@ -1,5 +1,9 @@
 const User = require("../models/User")
 const PasswordToken = require("../models/PasswordToken")
+const jwt = require("jsonwebtoken")
+const bcrypt = require("bcrypt")
+
+var secret = "Google API Client Library for JavaScript"
 class UserController{
 
     async index(req,res){
@@ -89,6 +93,24 @@ class UserController{
             res.status(200).json("password changed")
         } else{
             res.status(406).json("Invalid Token")
+        }
+    }
+
+    async login(req,res){
+        let {email, password} = req.body
+        
+        var user = await User.findByEmail(email)
+
+        if(user != undefined){
+           let result= await  bcrypt.compare(password, user.password)
+           if(result){
+                var token = jwt.sign({email: user.email, role: user.role}, secret)
+                res.status(200).json({token: token})
+           }else{
+            res.status(404).json("senha incorreta")
+           }
+        }else{
+            res.json({status: false})
         }
     }
 }
