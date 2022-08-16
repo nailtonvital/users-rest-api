@@ -1,5 +1,6 @@
 const bcrypt = require("bcrypt")
 const knex = require("../database/connection")
+const PasswordToken =  require("../models/PasswordToken")
 
 class User{
 
@@ -26,6 +27,22 @@ class User{
             return undefined
         }
     }
+
+    async findByEmail(email) {
+        try {
+            let result = await knex.select(["id", "name", "email", "role"]).where({ email: email }).table("users")
+            if (result.length > 0) {
+                return result[0]
+            } else {
+                return undefined
+            }
+        } catch (err) {
+            console.log(err)
+            return undefined
+        }
+    }
+
+    
 
 
     async new(email, password, name){
@@ -90,6 +107,26 @@ class User{
             return {status:false, err: "the user doesn't exist"}
         }
     }
+
+    async delete(id){
+        var user = await this.findById(id)
+        if(user != undefined){
+            try{
+                await knex.delete().where({id:id}).table("users")
+                return { status: true }
+            }
+            catch(err){
+                return { status: false, err: "the user doesn't exist" }
+            }
+        }
+    }
+
+    async changePassword(newPassword, id, token) {
+        var hash = await bcrypt.hash(newPassword, 10)
+        await knex.update({password: hash}).where({id:id}).table("users")
+        await PasswordToken.setUsed(token)
+    }
+
 }
 
 module.exports = new User()
